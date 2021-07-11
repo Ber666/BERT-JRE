@@ -30,6 +30,44 @@ def re_collate_fn(batch):
     # spans = torch.tensor(inputs['spans'])
     return seq, mask, pair_batch, pair_label_batch, pair_index
 
+def jre_collate_fn(batch):
+    seq = pad_sequence([torch.tensor(i['tokens_id']) for i in batch], padding_value=0, batch_first=True).to('cuda')
+    mask = (seq > 0).float()
+    span_index = torch.zeros(len(batch), 2)
+    cur_len_ner = 0
+    pair_index = torch.zeros(len(batch), 2)
+    cur_len = 0
+    span_batch = []
+    span_label_batch = []
+    relations = []
+    pair_batch = []
+    pair_label_batch = []
+    for i, j in enumerate(batch):
+        pair_batch += j['entity_pairs']
+        pair_index[i][0] = cur_len
+        tmp_len = len(j['entity_pairs'])
+        pair_index[i][1] = tmp_len
+        cur_len += tmp_len
+        pair_label_batch += j['entity_pairs_label']
+        
+        span_batch += j['spans']
+        span_index[i][0] = cur_len_ner
+        tmp_len = len(j['spans'])
+        span_index[i][1] = tmp_len
+        cur_len_ner += tmp_len
+        span_label_batch += j['spans_label']
+        relations.append(j['relations'])
+        
+    pair_batch = torch.tensor(pair_batch).to('cuda').long()
+    pair_index = pair_index.to('cuda').long()
+    pair_label_batch = torch.tensor(pair_label_batch).to('cuda')
+        
+    span_batch = torch.tensor(span_batch).to('cuda').long()
+    span_index = span_index.to('cuda').long()
+    span_label_batch = torch.tensor(span_label_batch).to('cuda')
+    # spans = torch.tensor(inputs['spans'])
+    return seq, mask, span_batch, span_label_batch, span_index, pair_batch, pair_label_batch, pair_index
+
 def ner_collate_fn(batch):
     seq = pad_sequence([torch.tensor(i['tokens_id']) for i in batch], padding_value=0, batch_first=True).to('cuda')
     mask = (seq > 0).float()
@@ -143,3 +181,7 @@ class REDataloader(DataLoader):
         # DataLoader.__init__(*args, **kargs, collate_fn=ner_collate_fn)
         super(__class__, self).__init__(*args, **kargs, collate_fn=re_collate_fn)
         
+class JREDataloader(DataLoader):
+    def __init__(self, *args, **kargs):
+        # DataLoader.__init__(*args, **kargs, collate_fn=ner_collate_fn)
+        super(__class__, self).__init__(*args, **kargs, collate_fn=jre_collate_fn)
