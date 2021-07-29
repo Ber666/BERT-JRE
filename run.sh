@@ -1,5 +1,5 @@
 # python=3.9
-# torch=3.9
+# torch=1.9
 # transformers=4.8
 
 CUDA_VISIBLE_DEVICES=3 python main.py --task re --bs 32 --lr 5e-5 --epoch 30 --model_name backup --attention --warmup_proportion -1
